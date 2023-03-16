@@ -8,14 +8,20 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 管理uthread调度
  * <p>
- * 仅体现思维逻辑，调度算法写的太仓促，不可做任何使用，未经任何验证
+ * 仅体现思维逻辑，不可做任何使用，未经任何验证
  */
 public class UThreadManager {
 
-    private static final Map<UThread, Boolean> uThreads;
+    private static final Map<UThread, Byte> uThreads;
     private static final ThreadPool threadPool;
     private static Thread loopThread;
+    private static final Object loopLock = new Object();
     private static final Runnable loopTask;
+
+    private static final byte suspendedLimits = 10;
+    private static final byte one = 1;
+    private static final byte SUSPENDED = 1;
+    private static final byte RUNNING = 2;
 
     static {
         uThreads = new ConcurrentHashMap<>();
@@ -23,31 +29,56 @@ public class UThreadManager {
         loopTask = () -> {
             Worker worker;
             while (!uThreads.isEmpty()) {
-                for (Map.Entry<UThread, Boolean> entry : uThreads.entrySet()) {
-                    if (!entry.getValue() && (worker = threadPool.getWorker()) != null) {
-                        uThreads.put(entry.getKey(), true);
+                for (Map.Entry<UThread, Byte> entry : uThreads.entrySet()) {
+                    if (entry.getValue().equals(SUSPENDED) && (worker = threadPool.getWorker()) != null) {
+                        uThreads.put(entry.getKey(), RUNNING);
                         worker.work(() -> entry.getKey().run());
+                    } else if (entry.getValue().equals(RUNNING)) {
+                        synchronized (entry.getKey()) {
+                            byte tByte = (byte) (entry.getValue() + one);
+                            if (tByte > suspendedLimits){
+                                uThreads.put(entry.getKey(), SUSPENDED);
+                            }else {
+                                uThreads.put(entry.getKey(), tByte);
+                            }
+                        }
                     }
                 }
             }
-            loopThread = null;
+            synchronized (loopLock) {
+                if (uThreads.isEmpty()) {
+                    loopThread = null;
+                }
+            }
         };
     }
 
     public static boolean suspended(UThread uThread) {
-        return uThreads.getOrDefault(uThread, true);
+        return uThreads.getOrDefault(uThread, SUSPENDED).equals(SUSPENDED);
     }
 
-    public static synchronized void register(UThread uThread) {
-        uThreads.put(uThread, true);
-        if (loopThread != null) {
-            loopThread = new Thread(loopTask);
-            loopThread.start();
+    public static void register(UThread uThread) {
+        uThreads.put(uThread, SUSPENDED);
+        synchronized (loopLock) {
+            if (loopThread != null) {
+                loopThread = new Thread(loopTask);
+                loopThread.start();
+            }
         }
     }
 
     public static void unregister(UThread uThread) {
         uThreads.remove(uThread);
+    }
+
+    public static void refresh(UThread uThread) {
+        synchronized (uThread) {
+            uThreads.put(uThread, RUNNING);
+        }
+    }
+
+    public static boolean isRunning(UThread uThread) {
+        return uThreads.getOrDefault(uThread, SUSPENDED) > SUSPENDED;
     }
 
     public static class ThreadPool {

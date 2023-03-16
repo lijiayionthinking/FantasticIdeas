@@ -16,7 +16,6 @@ import java.util.Queue;
 public class UThread {
 
     private final Queue<CheckPoint> methodQueue;
-    private boolean isRunning;
 
     public UThread() {
         methodQueue = new LinkedList<>();
@@ -25,7 +24,7 @@ public class UThread {
 
     public void mark(CheckPoint checkPoint) {
         synchronized (this) {
-            if (isRunning) {
+            if (UThreadManager.isRunning(this)) {
                 throw new UnsupportedOperationException("UThread is running");
             }
             methodQueue.add(checkPoint);
@@ -33,14 +32,22 @@ public class UThread {
     }
 
     public void run() {
+        if (isOver()) return;
+        synchronized (this) {
+            UThreadManager.refresh(this);
+            while (!UThreadManager.suspended(this) && !methodQueue.isEmpty()) {
+                methodQueue.poll().run();
+                UThreadManager.refresh(this);
+            }
+        }
+        isOver();
+    }
+
+    private boolean isOver() {
         if (methodQueue.isEmpty()) {
             UThreadManager.unregister(this);
-            return;
+            return true;
         }
-        synchronized (this) {
-            isRunning = true;
-            while (!UThreadManager.suspended(this) && !methodQueue.isEmpty())
-                methodQueue.poll().run();
-        }
+        return false;
     }
 }
