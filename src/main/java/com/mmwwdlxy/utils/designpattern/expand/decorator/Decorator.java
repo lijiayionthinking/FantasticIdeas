@@ -1,4 +1,4 @@
-package com.mmwwdlxy.utils.designpattern.decorator;
+package com.mmwwdlxy.utils.designpattern.expand.decorator;
 
 /**
  * 装饰，类结构语法原因无法拟真
