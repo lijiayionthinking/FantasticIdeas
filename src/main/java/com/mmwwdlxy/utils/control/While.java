@@ -1,41 +1,40 @@
-package com.mmwwdlxy.utils;
+package com.mmwwdlxy.utils.control;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * while循环函数式版
- * 最后一定会执行一次
  */
-public class WhileDo<T> {
+public class While<T> {
     private Function<T, Boolean> condition;
     private Consumer<T> logic;
 
-    private WhileDo() {
+    private While() {
 
     }
 
-    public static <T> WhileDo<T> needOne() {
-        return new WhileDo<>();
+    public static <T> While<T> needOne() {
+        return new While<>();
     }
 
-    public static <T> WhileDo<T> needOne(Function<T, Boolean> condition, Consumer<T> logic) {
-        WhileDo<T> While = new WhileDo<>();
+    public static <T> While<T> needOne(Function<T, Boolean> condition, Consumer<T> logic) {
+        While<T> While = new While<>();
         While.condition = condition;
         While.logic = logic;
         return While;
     }
 
-    public WhileDo<T> cond(Function<T, Boolean> condition) {
+    public While<T> cond(Function<T, Boolean> condition) {
         return condition(condition);
     }
 
-    public WhileDo<T> condition(Function<T, Boolean> condition) {
+    public While<T> condition(Function<T, Boolean> condition) {
         this.condition = condition;
         return this;
     }
 
-    public WhileDo<T> logic(Consumer<T> logic) {
+    public While<T> logic(Consumer<T> logic) {
         this.logic = logic;
         return this;
     }
@@ -49,11 +48,7 @@ public class WhileDo<T> {
         final Function<T, Boolean> fCondition = condition;
         final Consumer<T> fLogic = logic;
 
-        try {
-            while (fCondition.apply(t)) {
-                fLogic.accept(t);
-            }
-        } finally {
+        while (fCondition.apply(t)) {
             fLogic.accept(t);
         }
 

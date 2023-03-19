@@ -1,40 +1,41 @@
-package com.mmwwdlxy.utils;
+package com.mmwwdlxy.utils.control;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * do while循环函数式版
+ * 最后一定会执行一次
  */
-public class DoWhile<T> {
+public class DoWhileDo<T> {
     private Function<T, Boolean> condition;
     private Consumer<T> logic;
 
-    private DoWhile() {
+    private DoWhileDo() {
 
     }
 
-    public static <T> DoWhile<T> needOne() {
-        return new DoWhile<>();
+    public static <T> DoWhileDo<T> needOne() {
+        return new DoWhileDo<>();
     }
 
-    public static <T> DoWhile<T> needOne(Function<T, Boolean> condition, Consumer<T> logic) {
-        DoWhile<T> While = new DoWhile<>();
+    public static <T> DoWhileDo<T> needOne(Function<T, Boolean> condition, Consumer<T> logic) {
+        DoWhileDo<T> While = new DoWhileDo<>();
         While.condition = condition;
         While.logic = logic;
         return While;
     }
 
-    public DoWhile<T> cond(Function<T, Boolean> condition) {
+    public DoWhileDo<T> cond(Function<T, Boolean> condition) {
         return condition(condition);
     }
 
-    public DoWhile<T> condition(Function<T, Boolean> condition) {
+    public DoWhileDo<T> condition(Function<T, Boolean> condition) {
         this.condition = condition;
         return this;
     }
 
-    public DoWhile<T> logic(Consumer<T> logic) {
+    public DoWhileDo<T> logic(Consumer<T> logic) {
         this.logic = logic;
         return this;
     }
@@ -48,9 +49,13 @@ public class DoWhile<T> {
         final Function<T, Boolean> fCondition = condition;
         final Consumer<T> fLogic = logic;
 
-        do{
+        try {
+            do {
+                fLogic.accept(t);
+            } while (fCondition.apply(t));
+        } finally {
             fLogic.accept(t);
-        } while (fCondition.apply(t));
+        }
 
     }
 
